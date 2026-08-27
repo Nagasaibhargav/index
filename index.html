@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rakhi Special Memories</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- LZ-String for compressing the shareable link -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+    
+    <!-- Google Fonts -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Inter:wght@300;400;600&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #fdf4ff; /* Light pink background */
+        }
+
+        .handwriting {
+            font-family: 'Dancing Script', cursive;
+        }
+
+        .scene {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
+        }
+
+        .scene.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        .scene.hidden-up {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+
+        /* Config Form Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #fbcfe8; 
+            border-radius: 4px;
+        }
+
+        /* --- Pure CSS Envelope --- */
+        .envelope-wrapper {
+            position: relative;
+            width: 300px;
+            height: 200px;
+            background-color: #f3f4f6; /* Inside of envelope */
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .envelope-wrapper:hover {
+            transform: scale(1.02) translateY(-5px);
+        }
+        
+        .envelope-front {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            bottom: 0;
+            left: 0;
+            border-left: 150px solid #e5e7eb;
+            border-right: 150px solid #e5e7eb;
+            border-bottom: 100px solid #d1d5db;
+            border-top: 100px solid transparent;
+            z-index: 3;
+            border-radius: 0 0 8px 8px;
+            pointer-events: none;
+        }
+
+        .envelope-flap {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-left: 150px solid transparent;
+            border-right: 150px solid transparent;
+            border-top: 120px solid #f9fafb;
+            border-bottom: 80px solid transparent;
+            z-index: 4;
+            transform-origin: top;
+            transition: transform 0.6s ease-in-out, z-index 0s linear 0.3s;
+        }
+
+        .envelope-wrapper.open .envelope-flap {
+            transform: rotateX(180deg);
+            z-index: 1;
+        }
+
+        .letter-preview {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            bottom: 10px;
+            background: #fff;
+            z-index: 2;
+            transition: transform 0.8s ease-in-out;
+            padding: 20px;
+            text-align: center;
+            border: 1px dashed #f472b6;
+        }
+
+        .envelope-wrapper.open .letter-preview {
+            transform: translateY(-120px);
+        }
+
+        /* --- Pure CSS Scroll Paper --- */
+        .scroll-paper {
+            background-color: #fdf6e3;
+            background-image: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(200,180,140,0.1) 50%, rgba(255,255,255,0) 100%);
+            border: 1px solid #e5d3b3;
+            box-shadow: 
+                inset 0 0 30px rgba(150, 100, 50, 0.1),
+                0 20px 25px -5px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+        
+        /* Scroll Roll effects */
+        .scroll-paper::before, .scroll-paper::after {
+            content: '';
+            position: absolute;
+            left: -10px;
+            right: -10px;
+            height: 25px;
+            background: linear-gradient(to bottom, #d4a373 0%, #faedcd 40%, #d4a373 100%);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        .scroll-paper::before { top: -15px; }
+        .scroll-paper::after { bottom: -15px; }
+
+        .rakhi-thread {
+            width: 100%;
+            height: 4px;
+            background: repeating-linear-gradient(45deg, #ef4444, #ef4444 10px, #eab308 10px, #eab308 20px);
+            margin: 20px 0;
+            border-radius: 2px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        #fw-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+        }
+
+        .celebration-text {
+            text-shadow: 0 0 20px rgba(255, 105, 180, 0.8), 0 0 40px rgba(255, 105, 180, 0.5);
+            color: white;
+            z-index: 50;
+            opacity: 0;
+            transform: scale(0.5);
+            animation: popIn 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            animation-delay: 1s;
+        }
+
+        @keyframes popIn {
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .btn-custom {
+            background: linear-gradient(to right, #ec4899, #8b5cf6);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
+        }
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(236, 72, 153, 0.6);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ================= SCENE 1: SETUP/CONFIG ================= -->
+    <div id="config-scene" class="scene active" style="background: linear-gradient(135deg, #fdf4ff 0%, #fce7f3 100%); z-index: 50;">
+        <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl text-center max-w-md w-11/12 border border-pink-100 max-h-[95vh] overflow-y-auto custom-scrollbar">
+            <h2 class="text-3xl font-bold text-pink-600 mb-4 handwriting">Customize & Share</h2>
+            
+            <div class="mb-3 text-left">
+                <label class="block text-gray-700 font-semibold mb-1 text-sm">Sibling's Name:</label>
+                <input type="text" id="sibling-name" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-pink-500 text-sm" placeholder="Enter name">
+            </div>
+
+            <div class="mb-3 text-left">
+                <label class="block text-gray-700 font-semibold mb-1 text-sm">Custom Message:</label>
+                <textarea id="custom-message" rows="3" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-pink-500 text-sm custom-scrollbar" placeholder="Write your special message here..."></textarea>
+            </div>
+
+            <div class="mb-3 text-left">
+                <label class="block text-gray-700 font-semibold mb-1 text-sm">Memories (Upload 4 Images):</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="file" id="mem-upload-1" accept="image/*" class="w-full text-[10px] text-gray-500 file:py-1 file:px-2 file:rounded file:border-0 file:bg-pink-50 file:text-pink-700 cursor-pointer border rounded bg-gray-50">
+                    <input type="file" id="mem-upload-2" accept="image/*" class="w-full text-[10px] text-gray-500 file:py-1 file:px-2 file:rounded file:border-0 file:bg-pink-50 file:text-pink-700 cursor-pointer border rounded bg-gray-50">
+                    <input type="file" id="mem-upload-3" accept="image/*" class="w-full text-[10px] text-gray-500 file:py-1 file:px-2 file:rounded file:border-0 file:bg-pink-50 file:text-pink-700 cursor-pointer border rounded bg-gray-50">
+                    <input type="file" id="mem-upload-4" accept="image/*" class="w-full text-[10px] text-gray-500 file:py-1 file:px-2 file:rounded file:border-0 file:bg-pink-50 file:text-pink-700 cursor-pointer border rounded bg-gray-50">
+                </div>
+            </div>
+
+            <div class="mb-4 text-left">
+                <label class="block text-gray-700 font-semibold mb-1 text-sm">Which image for fireworks?</label>
+                <select id="firework-face-select" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-pink-500 text-sm bg-white">
+                    <option value="0">None (Standard Smiley)</option>
+                    <option value="1">Memory 1</option>
+                    <option value="2">Memory 2</option>
+                    <option value="3">Memory 3</option>
+                    <option value="4">Memory 4</option>
+                </select>
+            </div>
+
+            <button id="generate-btn" onclick="generateLink()" class="btn-custom w-full flex justify-center items-center gap-2 mb-2">
+                Create Surprise Link <i class="fa-solid fa-link"></i>
+            </button>
+
+            <!-- Share Section (Hidden initially) -->
+            <div id="share-section" class="hidden flex-col gap-2 mt-4 p-3 bg-pink-50 rounded-lg border border-pink-200 text-left">
+                <label class="text-xs text-pink-800 font-bold">Send this link to your sibling:</label>
+                <input type="text" id="share-link" class="w-full text-xs p-2 border border-pink-300 rounded bg-white text-gray-600 focus:outline-none" readonly>
+                <div class="flex gap-2 mt-1">
+                    <button id="copy-btn" onclick="copyLink()" class="flex-1 bg-pink-500 text-white py-1.5 rounded font-semibold text-sm hover:bg-pink-600 transition shadow-sm">
+                        <i class="fa-regular fa-copy"></i> Copy
+                    </button>
+                    <button onclick="startApp()" class="flex-1 bg-purple-500 text-white py-1.5 rounded font-semibold text-sm hover:bg-purple-600 transition shadow-sm">
+                        Preview <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= SCENE 2: THE ENVELOPE ================= -->
+    <div id="envelope-scene" class="scene" style="background: linear-gradient(135deg, #fdf4ff 0%, #fce7f3 100%);">
+        <div class="text-center flex flex-col items-center">
+            <h2 class="handwriting text-3xl md:text-4xl text-pink-600 mb-8 font-bold">You have a special message...</h2>
+            
+            <div id="envelope-wrapper" class="envelope-wrapper" onclick="openEnvelope()">
+                <div class="envelope-front"></div>
+                <div class="envelope-flap"></div>
+                <div class="letter-preview flex flex-col items-center justify-center">
+                    <i class="fa-solid fa-heart text-pink-500 text-4xl mb-2"></i>
+                    <p class="handwriting text-xl text-pink-800">For You</p>
+                </div>
+            </div>
+            
+            <p class="text-gray-500 mt-8 animate-pulse text-sm">Tap the envelope to open</p>
+        </div>
+    </div>
+
+    <!-- ================= SCENE 3: THE SCROLL (Memories & Message) ================= -->
+    <div id="scroll-scene" class="scene" style="background: linear-gradient(135deg, #1f2937 0%, #111827 100%);">
+        <div class="scroll-paper w-11/12 max-w-4xl p-6 md:p-10 rounded shadow-2xl flex flex-col items-center max-h-[85vh] overflow-y-auto custom-scrollbar">
+            
+            <div class="flex flex-col md:flex-row w-full gap-8 mt-4 mb-4">
+                
+                <!-- Left Side: Matter / Text -->
+                <div class="w-full md:w-1/2 flex flex-col justify-center">
+                    <h2 class="handwriting text-4xl text-amber-900 mb-4 text-center md:text-left border-b border-amber-900/20 pb-2">
+                        Happy Raksha Bandhan
+                    </h2>
+                    
+                    <div class="text-gray-800 space-y-3 leading-relaxed font-medium text-base md:text-lg">
+                        <p id="letter-matter-name" class="font-bold">Dear [Name],</p>
+                        <div id="letter-matter-content" class="whitespace-pre-wrap">
+                            <!-- Custom text injected here -->
+                        </div>
+                        <p class="handwriting text-2xl mt-6 text-right text-amber-900 font-bold">
+                            With love,<br>Your Sibling
+                        </p>
+                    </div>
+
+                    <div class="rakhi-thread mt-6"></div>
+                </div>
+
+                <!-- Right Side: 4 Memories Images -->
+                <div class="w-full md:w-1/2 grid grid-cols-2 gap-3 place-items-center p-3 bg-amber-900/5 rounded-lg border border-amber-900/10">
+                    <div class="relative w-full aspect-square bg-white p-2 shadow-sm transform -rotate-2">
+                        <img id="disp-mem-1" src="https://placehold.co/400x400/ffe4e1/d2691e?text=Memory+1" alt="Memory 1" class="w-full h-full object-cover rounded-sm">
+                    </div>
+                    <div class="relative w-full aspect-square bg-white p-2 shadow-sm transform rotate-3 mt-4">
+                        <img id="disp-mem-2" src="https://placehold.co/400x400/fff0f5/c71585?text=Memory+2" alt="Memory 2" class="w-full h-full object-cover rounded-sm">
+                    </div>
+                    <div class="relative w-full aspect-square bg-white p-2 shadow-sm transform -rotate-1 -mt-4">
+                        <img id="disp-mem-3" src="https://placehold.co/400x400/e6e6fa/4b0082?text=Memory+3" alt="Memory 3" class="w-full h-full object-cover rounded-sm">
+                    </div>
+                    <div class="relative w-full aspect-square bg-white p-2 shadow-sm transform rotate-2">
+                        <img id="disp-mem-4" src="https://placehold.co/400x400/f0fff0/006400?text=Memory+4" alt="Memory 4" class="w-full h-full object-cover rounded-sm">
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn-custom mt-6 z-20" onclick="startFireworks()">
+                Celebrate! <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- ================= SCENE 4: FIREWORKS ================= -->
+    <div id="fireworks-scene" class="scene" style="background-color: #000;">
+        <canvas id="fw-canvas"></canvas>
+        <div class="text-center z-50 flex flex-col items-center">
+            <h1 class="handwriting text-5xl md:text-7xl celebration-text mb-4" id="celebration-name">
+                Happy Rakhi, [Name]!
+            </h1>
+            <p class="text-lg md:text-2xl text-pink-200 mb-8 font-light tracking-widest uppercase">
+                A bond that lasts forever
+            </p>
+            <button class="px-6 py-2 border border-white/50 rounded-full text-white hover:bg-white/10 transition backdrop-blur-sm" onclick="location.reload()">
+                Start Over
+            </button>
+        </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT LOGIC ================= -->
+    <script>
+        // DOM Elements
+        const configScene = document.getElementById('config-scene');
+        const envelopeScene = document.getElementById('envelope-scene');
+        const scrollScene = document.getElementById('scroll-scene');
+        const fireworksScene = document.getElementById('fireworks-scene');
+        const envelopeWrapper = document.getElementById('envelope-wrapper');
+        
+        let fireworksInterval;
+        let customFaceImage = null;
+        
+        // App State (Default Data)
+        let appData = {
+            n: "My Dear",
+            m: "On this beautiful occasion of Raksha Bandhan, I want to tell you how much you mean to me.\n\nThank you for always having my back, for the shared laughs, the secret keeping, and for being the best sibling one could ask for.\n\nMay our bond grow stronger with each passing year. Wishing you all the happiness and success!",
+            i1: null,
+            i2: null,
+            i3: null,
+            i4: null,
+            fw: 0
+        };
+
+        // Initialize default text area
+        document.getElementById('custom-message').value = appData.m;
+
+        // --- 1. INITIALIZATION & VIEWER MODE ---
+        window.onload = function() {
+            // Check if we are opening a shared link (has data after #)
+            if (window.location.hash && window.location.hash.length > 1) {
+                try {
+                    const hashData = window.location.hash.substring(1);
+                    
+                    // Decode using LZString to handle large image data safely
+                    const decompressed = LZString.decompressFromEncodedURIComponent(hashData);
+                    const decodedData = JSON.parse(decompressed);
+                    
+                    // Merge decoded data into appData
+                    appData = { ...appData, ...decodedData };
+                    
+                    // Set firework image if selected
+                    if (appData.fw > 0) {
+                        const fwImgSrc = appData[`i${appData.fw}`];
+                        if (fwImgSrc) {
+                            customFaceImage = new Image();
+                            customFaceImage.src = fwImgSrc;
+                        }
+                    }
+                    
+                    // Hide config, setup DOM, and skip straight to envelope
+                    setupDomWithData();
+                    configScene.classList.remove('active');
+                    configScene.classList.add('hidden-up');
+                    envelopeScene.classList.add('active');
+                } catch(e) {
+                    console.error("Invalid share link data", e);
+                    alert("Oops! There was an issue loading the link. The link might be broken.");
+                }
+            }
+        };
+
+        // --- 2. IMAGE COMPRESSION (For Host) ---
+        function handleImageUpload(event, key) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        // Shrink heavily so all 4 images fit inside the URL string
+                        canvas.width = 80; 
+                        canvas.height = 80;
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Crop to square
+                        const size = Math.min(img.width, img.height);
+                        const startX = (img.width - size) / 2;
+                        const startY = (img.height - size) / 2;
+                        
+                        ctx.drawImage(img, startX, startY, size, size, 0, 0, 80, 80);
+                        
+                        // Highly compressed JPEG (0.4 quality)
+                        appData[key] = canvas.toDataURL('image/jpeg', 0.4); 
+                    }
+                    img.src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Attach listeners
+        document.getElementById('mem-upload-1').addEventListener('change', (e) => handleImageUpload(e, 'i1'));
+        document.getElementById('mem-upload-2').addEventListener('change', (e) => handleImageUpload(e, 'i2'));
+        document.getElementById('mem-upload-3').addEventListener('change', (e) => handleImageUpload(e, 'i3'));
+        document.getElementById('mem-upload-4').addEventListener('change', (e) => handleImageUpload(e, 'i4'));
+
+        // --- 3. LINK GENERATION (For Host) ---
+        function generateLink() {
+            // Update appData from form
+            const nameInput = document.getElementById('sibling-name').value.trim();
+            if (nameInput) appData.n = nameInput;
+            
+            const msgInput = document.getElementById('custom-message').value.trim();
+            if (msgInput) appData.m = msgInput;
+
+            appData.fw = parseInt(document.getElementById('firework-face-select').value) || 0;
+            
+            // Set local firework image for preview
+            if (appData.fw > 0) {
+                const fwImgSrc = appData[`i${appData.fw}`];
+                if (fwImgSrc) {
+                    customFaceImage = new Image();
+                    customFaceImage.src = fwImgSrc;
+                }
+            } else {
+                customFaceImage = null;
+            }
+            
+            // Compress and create URL
+            const jsonString = JSON.stringify(appData);
+            const compressedHash = LZString.compressToEncodedURIComponent(jsonString);
+            const shareUrl = window.location.origin + window.location.pathname + "#" + compressedHash;
+            
+            // Show link in UI
+            document.getElementById('share-link').value = shareUrl;
+            document.getElementById('share-section').classList.remove('hidden');
+            document.getElementById('share-section').classList.add('flex');
+            document.getElementById('generate-btn').innerHTML = 'Update Surprise Link <i class="fa-solid fa-rotate"></i>';
+        }
+
+        function copyLink() {
+            const linkInput = document.getElementById('share-link');
+            linkInput.select();
+            document.execCommand('copy');
+            
+            const copyBtn = document.getElementById('copy-btn');
+            const originalText = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+            copyBtn.classList.replace('bg-pink-500', 'bg-green-500');
+            copyBtn.classList.replace('hover:bg-pink-600', 'hover:bg-green-600');
+            
+            setTimeout(() => {
+                copyBtn.innerHTML = originalText;
+                copyBtn.classList.replace('bg-green-500', 'bg-pink-500');
+                copyBtn.classList.replace('hover:bg-green-600', 'hover:bg-pink-600');
+            }, 2000);
+        }
+
+        // --- 4. POPULATE DOM WITH DATA ---
+        function setupDomWithData() {
+            document.getElementById('celebration-name').innerText = `Happy Rakhi, ${appData.n}!`;
+            document.getElementById('letter-matter-name').innerText = `Dear ${appData.n},`;
+            document.getElementById('letter-matter-content').innerText = appData.m; // Using innerText preserves line breaks safely
+
+            // Update images if present
+            if (appData.i1) document.getElementById('disp-mem-1').src = appData.i1;
+            if (appData.i2) document.getElementById('disp-mem-2').src = appData.i2;
+            if (appData.i3) document.getElementById('disp-mem-3').src = appData.i3;
+            if (appData.i4) document.getElementById('disp-mem-4').src = appData.i4;
+        }
+
+        // Start Preview (Host clicks preview)
+        function startApp() {
+            generateLink(); // Ensure appData is updated
+            setupDomWithData();
+
+            configScene.classList.remove('active');
+            configScene.classList.add('hidden-up');
+            
+            setTimeout(() => {
+                envelopeScene.classList.add('active');
+            }, 300);
+        }
+
+        // --- 5. SCENE TRANSITIONS & ANIMATIONS ---
+        function openEnvelope() {
+            if (envelopeWrapper.classList.contains('open')) return;
+            
+            envelopeWrapper.classList.add('open');
+            
+            setTimeout(() => {
+                envelopeScene.classList.remove('active');
+                envelopeScene.classList.add('hidden-up');
+                
+                setTimeout(() => {
+                    scrollScene.classList.add('active');
+                }, 500);
+            }, 1200);
+        }
+
+        function startFireworks() {
+            scrollScene.classList.remove('active');
+            scrollScene.classList.add('hidden-up');
+            
+            setTimeout(() => {
+                fireworksScene.classList.add('active');
+                initFireworks();
+            }, 600);
+        }
+
+        // --- 6. FIREWORKS CANVAS LOGIC ---
+        function initFireworks() {
+            const canvas = document.getElementById('fw-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['255, 105, 180', '255, 215, 0', '0, 255, 255', '255, 69, 0', '147, 112, 219'];
+
+            class Particle {
+                constructor(x, y, color, isFacePart = false, isFaceCenter = false) {
+                    this.x = x;
+                    this.y = y;
+                    this.color = color;
+                    this.isFacePart = isFacePart;
+                    this.isFaceCenter = isFaceCenter;
+                    
+                    if (isFacePart || isFaceCenter) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const velocity = isFaceCenter ? 0 : Math.random() * 2 + 1;
+                        this.vx = Math.cos(angle) * velocity;
+                        this.vy = Math.sin(angle) * velocity;
+                        this.life = 150; 
+                        this.decay = Math.random() * 0.01 + 0.005;
+                    } else {
+                        const angle = Math.random() * Math.PI * 2;
+                        const velocity = Math.random() * 5 + 2;
+                        this.vx = Math.cos(angle) * velocity;
+                        this.vy = Math.sin(angle) * velocity;
+                        this.life = 100;
+                        this.decay = Math.random() * 0.015 + 0.015;
+                    }
+                }
+                
+                update() {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    if (!this.isFaceCenter) {
+                        this.vy += 0.05; // Gravity
+                    }
+                    this.life -= this.decay * 100;
+                }
+                
+                draw() {
+                    ctx.beginPath();
+                    
+                    if (this.isFaceCenter) {
+                        // Draw Custom Face OR Smiley
+                        ctx.save();
+                        ctx.globalAlpha = Math.max(0, this.life / 150);
+                        ctx.translate(this.x, this.y);
+                        
+                        if (customFaceImage) {
+                            // Custom uploaded face
+                            ctx.beginPath();
+                            ctx.arc(0, 0, 35, 0, Math.PI * 2);
+                            ctx.closePath();
+                            ctx.clip();
+                            ctx.drawImage(customFaceImage, -35, -35, 70, 70);
+                            ctx.lineWidth = 3;
+                            ctx.strokeStyle = `rgba(${this.color}, ${this.life / 100})`;
+                            ctx.stroke();
+                        } else {
+                            // Smiley fallback
+                            ctx.fillStyle = '#fef08a';
+                            ctx.arc(0, 0, 25, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.fillStyle = '#000';
+                            ctx.beginPath(); ctx.arc(-8, -6, 3, 0, Math.PI*2); ctx.fill();
+                            ctx.beginPath(); ctx.arc(8, -6, 3, 0, Math.PI*2); ctx.fill();
+                            ctx.beginPath();
+                            ctx.strokeStyle = '#000';
+                            ctx.lineWidth = 2;
+                            ctx.arc(0, 4, 12, 0, Math.PI);
+                            ctx.stroke();
+                        }
+                        ctx.restore();
+                    } else {
+                        // Normal spark
+                        ctx.arc(this.x, this.y, this.isFacePart ? 3 : 2, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(${this.color}, ${Math.max(0, this.life / 100)})`;
+                        ctx.fill();
+                    }
+                }
+            }
+
+            function createFirework(x, y) {
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const isSpecial = Math.random() > 0.6; // 40% chance of face firework
+                
+                if (isSpecial) {
+                    particles.push(new Particle(x, y, color, false, true)); // Center face
+                    for (let i = 0; i < 40; i++) {
+                        particles.push(new Particle(x, y, color, true, false));
+                    }
+                } else {
+                    for (let i = 0; i < 80; i++) {
+                        particles.push(new Particle(x, y, color));
+                    }
+                }
+            }
+
+            function animate() {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                if (Math.random() < 0.05) {
+                    createFirework(
+                        Math.random() * canvas.width,
+                        Math.random() * canvas.height * 0.6 // Keep mostly in upper half
+                    );
+                }
+                
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    particles[i].update();
+                    particles[i].draw();
+                    if (particles[i].life <= 0) {
+                        particles.splice(i, 1);
+                    }
+                }
+                
+                requestAnimationFrame(animate);
+            }
+            
+            // Start fireworks loop
+            animate();
+            
+            // Resize canvas on window resize
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+        }
+    </script>
+</body>
+</html>
